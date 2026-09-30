@@ -15,6 +15,14 @@ export default function Dashboard() {
 
   if (error) return <Alert>{error}</Alert>
   if (!data) return <Spinner />
+  if (data.companies.length === 0) {
+    return (
+      <Alert>
+        {'No company is switched on yet, so invoices cannot be created.\n' +
+          'On the server, set the variable ACTIVE_COMPANIES to APX and restart the app.'}
+      </Alert>
+    )
+  }
 
   const multi = data.companies.length > 1
   const openMonth = (month, companyId) => {

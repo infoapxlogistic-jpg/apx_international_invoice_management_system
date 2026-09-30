@@ -128,6 +128,15 @@ def init_db() -> None:
             f"ADMIN_USERNAME='{settings.admin_username}' | ADMIN_PASSWORD length={len(settings.admin_password)}",
             flush=True,
         )
+        known = {c["code"] for c in DEFAULT_COMPANIES}
+        print(
+            f"[seed] ACTIVE_COMPANIES='{settings.active_companies}' "
+            f"(known codes: {', '.join(sorted(known))}) | UPLOAD_DIR='{settings.upload_dir}' | "
+            f"SECRET_KEY length={len(settings.secret_key)}",
+            flush=True,
+        )
+        if not set(settings.active_company_codes) & known:
+            print("[seed] WARNING: no company is switched on. Set ACTIVE_COMPANIES=APX", flush=True)
         for data in DEFAULT_COMPANIES:
             if data["code"] not in settings.active_company_codes:
                 continue

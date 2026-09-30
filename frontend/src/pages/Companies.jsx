@@ -168,6 +168,14 @@ export default function Companies() {
 
   if (error) return <Alert>{error}</Alert>
   if (!companies) return <Spinner />
+  if (companies.length === 0) {
+    return (
+      <Alert>
+        {'No company is switched on, so there is nothing to show here.\n' +
+          'On the server, set the variable ACTIVE_COMPANIES to APX and restart the app.'}
+      </Alert>
+    )
+  }
 
   return (
     <>
