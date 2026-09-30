@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenOut)
 def login(data: LoginIn, db: Session = Depends(get_db)):
-    user = db.scalar(select(User).where(User.username == data.username.strip()))
+    user = db.scalar(select(User).where(func.lower(User.username) == data.username.strip().lower()))
     if user is None or not verify_password(data.password, user.password_hash):
         raise HTTPException(401, "Wrong username or password")
     if not user.is_active:

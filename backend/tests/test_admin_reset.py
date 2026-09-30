@@ -1,4 +1,6 @@
 """RESET_ADMIN_PASSWORD puts the admin account back to ADMIN_USERNAME / ADMIN_PASSWORD."""
+import pytest
+
 from app.config import settings
 from app.database import SessionLocal
 from app.models import User
@@ -20,6 +22,26 @@ def test_reset_admin_password(client, monkeypatch):
     r = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
     assert r.status_code == 200, r.text
     assert r.json()["user"]["role"] == "super_admin"
+
+
+def test_username_is_not_case_sensitive(client):
+    assert client.post("/api/auth/login", json={"username": "Admin", "password": "admin123"}).status_code == 200
+    assert client.post("/api/auth/login", json={"username": " ADMIN ", "password": "admin123"}).status_code == 200
+    assert client.post("/api/auth/login", json={"username": "admin", "password": "Admin123"}).status_code == 401
+
+
+@pytest.mark.parametrize(
+    "raw, clean",
+    [(" Admin123 ", "Admin123"), ('"Admin123"', "Admin123"), ("'Admin123'", "Admin123"), ("Admin123\n", "Admin123")],
+)
+def test_pasted_variable_values_are_cleaned(monkeypatch, raw, clean):
+    from app.config import Settings
+
+    monkeypatch.setenv("ADMIN_PASSWORD", raw)
+    monkeypatch.setenv("RESET_ADMIN_PASSWORD", '"True"')
+    s = Settings()
+    assert s.admin_password == clean
+    assert s.reset_admin_password is True
 
 
 def test_no_reset_when_flag_is_off(client):

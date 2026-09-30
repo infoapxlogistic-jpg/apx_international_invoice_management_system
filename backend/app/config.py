@@ -25,6 +25,21 @@ class Settings(BaseSettings):
     # On Railway point this at the mounted volume (e.g. /data/uploads) so logos survive deploys.
     upload_dir: Path = BASE_DIR / "uploads"
 
+    @field_validator("admin_username", "admin_password", "secret_key", "active_companies", mode="before")
+    @classmethod
+    def _clean(cls, v):
+        # Values pasted into a hosting dashboard often pick up spaces or wrapping quotes.
+        if isinstance(v, str):
+            v = v.strip()
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+                v = v[1:-1].strip()
+        return v
+
+    @field_validator("reset_admin_password", mode="before")
+    @classmethod
+    def _flag(cls, v):
+        return str(v).strip().strip("\"'").lower() in ("1", "true", "yes", "on")
+
     @field_validator("database_url")
     @classmethod
     def _use_pymysql(cls, v: str) -> str:

@@ -1,4 +1,4 @@
-from sqlalchemy import inspect, select
+from sqlalchemy import func, inspect, select
 
 from .config import settings
 from .database import Base, SessionLocal, engine
@@ -94,7 +94,7 @@ def _migrate() -> None:
 def _reset_admin(db) -> None:
     """Recovery for a forgotten admin password: RESET_ADMIN_PASSWORD=true on one start."""
     name = settings.admin_username.strip()
-    user = db.scalar(select(User).where(User.username == name))
+    user = db.scalar(select(User).where(func.lower(User.username) == name.lower()))
     if user is None:
         user = User(username=name, full_name="Admin")
         db.add(user)
@@ -121,6 +121,13 @@ def init_db() -> None:
             )
         if settings.reset_admin_password:
             _reset_admin(db)
+        users = db.scalars(select(User.username)).all()
+        print(
+            f"[seed] users: {len(users)} ({', '.join(users) or 'none'}) | "
+            f"RESET_ADMIN_PASSWORD={'on' if settings.reset_admin_password else 'off'} | "
+            f"ADMIN_USERNAME='{settings.admin_username}' | ADMIN_PASSWORD length={len(settings.admin_password)}",
+            flush=True,
+        )
         for data in DEFAULT_COMPANIES:
             if data["code"] not in settings.active_company_codes:
                 continue
