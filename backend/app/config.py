@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     admin_username: str = "admin"
     admin_password: str = "admin123"
+    # Set to true for one start to force the admin account back to ADMIN_USERNAME / ADMIN_PASSWORD.
+    reset_admin_password: bool = False
 
     # Company codes shown in the app, comma separated (e.g. "APX" or "APX,CRX").
     active_companies: str = "APX"

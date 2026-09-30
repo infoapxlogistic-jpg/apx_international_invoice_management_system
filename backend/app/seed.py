@@ -91,6 +91,20 @@ def _migrate() -> None:
                         conn.exec_driver_sql(f"ALTER TABLE {table} MODIFY {name} {ddl} NULL")
 
 
+def _reset_admin(db) -> None:
+    """Recovery for a forgotten admin password: RESET_ADMIN_PASSWORD=true on one start."""
+    name = settings.admin_username.strip()
+    user = db.scalar(select(User).where(User.username == name))
+    if user is None:
+        user = User(username=name, full_name="Admin")
+        db.add(user)
+    user.password_hash = hash_password(settings.admin_password)
+    user.role = "super_admin"
+    user.is_active = True
+    print(f"[seed] Admin account '{name}' password was reset from ADMIN_PASSWORD. "
+          "Remove RESET_ADMIN_PASSWORD now.", flush=True)
+
+
 def init_db() -> None:
     """Create tables and the starting data. Safe to run on every start."""
     Base.metadata.create_all(engine)
@@ -105,6 +119,8 @@ def init_db() -> None:
                     password_hash=hash_password(settings.admin_password),
                 )
             )
+        if settings.reset_admin_password:
+            _reset_admin(db)
         for data in DEFAULT_COMPANIES:
             if data["code"] not in settings.active_company_codes:
                 continue
