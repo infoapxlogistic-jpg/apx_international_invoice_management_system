@@ -1,0 +1,11 @@
+backend/.venv/
+backend/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+__pycache__/
+*.pyc
+*.db
+frontend/node_modules/
+frontend/dist/
+.pytest_cache/
+.claude/
