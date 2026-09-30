@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,7 +20,16 @@ class Settings(BaseSettings):
     # Company codes shown in the app, comma separated (e.g. "APX" or "APX,CRX").
     active_companies: str = "APX"
 
+    # On Railway point this at the mounted volume (e.g. /data/uploads) so logos survive deploys.
     upload_dir: Path = BASE_DIR / "uploads"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_pymysql(cls, v: str) -> str:
+        # Railway (and most hosts) give "mysql://user:pass@host:port/db"; SQLAlchemy needs the driver named.
+        if v.startswith("mysql://"):
+            return "mysql+pymysql://" + v[len("mysql://"):]
+        return v
 
     @property
     def active_company_codes(self) -> list[str]:

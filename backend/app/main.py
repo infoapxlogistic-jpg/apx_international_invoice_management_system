@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -45,6 +45,8 @@ if FRONTEND_DIST.exists():
 
     @app.get("/{path:path}", include_in_schema=False)
     def spa(path: str):
+        if path.startswith(("api/", "uploads/")):
+            raise HTTPException(404, "Not found")
         file = FRONTEND_DIST / path
         if path and file.is_file() and Path(file).resolve().is_relative_to(FRONTEND_DIST.resolve()):
             return FileResponse(file)
