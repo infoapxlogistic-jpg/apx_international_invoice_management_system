@@ -8,6 +8,8 @@ _db = Path(tempfile.gettempdir()) / "invoice_tests.db"
 if _db.exists():
     _db.unlink()
 os.environ["DATABASE_URL"] = f"sqlite:///{_db.as_posix()}"
+os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="invoice_test_uploads_")
+os.environ["ACTIVE_COMPANIES"] = "APX,CRX"
 os.environ["ADMIN_USERNAME"] = "admin"
 os.environ["ADMIN_PASSWORD"] = "admin123"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

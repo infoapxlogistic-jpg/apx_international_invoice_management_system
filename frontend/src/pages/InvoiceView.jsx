@@ -178,7 +178,7 @@ export default function InvoiceView() {
   useEffect(() => {
     if (inv) document.title = `${inv.invoice_no} · ${inv.customer_name}`
     return () => {
-      document.title = 'Invoice Manager · APXpress'
+      document.title = 'Invoice Manager'
     }
   }, [inv])
 

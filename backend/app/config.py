@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     reset_admin_password: bool = False
 
     # Company codes shown in the app, comma separated (e.g. "APX" or "APX,CRX").
-    active_companies: str = "APX"
+    active_companies: str = "APX,CRX"
 
     # On Railway point this at the mounted volume (e.g. /data/uploads) so logos survive deploys.
     upload_dir: Path = BASE_DIR / "uploads"

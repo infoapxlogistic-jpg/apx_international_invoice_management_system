@@ -172,7 +172,7 @@ export default function Companies() {
     return (
       <Alert>
         {'No company is switched on, so there is nothing to show here.\n' +
-          'On the server, set the variable ACTIVE_COMPANIES to APX and restart the app.'}
+          'On the server, set the variable ACTIVE_COMPANIES to APX,CRX and restart the app.'}
       </Alert>
     )
   }

@@ -19,7 +19,7 @@ export default function Dashboard() {
     return (
       <Alert>
         {'No company is switched on yet, so invoices cannot be created.\n' +
-          'On the server, set the variable ACTIVE_COMPANIES to APX and restart the app.'}
+          'On the server, set the variable ACTIVE_COMPANIES to APX,CRX and restart the app.'}
       </Alert>
     )
   }

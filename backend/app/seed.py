@@ -2,6 +2,7 @@ from sqlalchemy import func, inspect, select
 
 from .config import settings
 from .database import Base, SessionLocal, engine
+from .initial_data import apply_initial_data
 from .models import Company, User
 from .security import hash_password
 
@@ -23,7 +24,7 @@ DEFAULT_COMPANIES = [
         "code": "CRX",
         "name": "Creonetix Limited",
         "tagline": "Design-Market-Thrive",
-        "invoice_prefix": "CR",
+        "invoice_prefix": "INVOICE-",
         "next_invoice_number": 10001,
         "brand_color": "#e11d2e",
     },
@@ -136,7 +137,7 @@ def init_db() -> None:
             flush=True,
         )
         if not set(settings.active_company_codes) & known:
-            print("[seed] WARNING: no company is switched on. Set ACTIVE_COMPANIES=APX", flush=True)
+            print("[seed] WARNING: no company is switched on. Set ACTIVE_COMPANIES=APX,CRX", flush=True)
         for data in DEFAULT_COMPANIES:
             if data["code"] not in settings.active_company_codes:
                 continue
@@ -154,6 +155,8 @@ def init_db() -> None:
                         **data,
                     )
                 )
+        db.flush()
+        apply_initial_data(db, default_terms)
         db.commit()
 
 

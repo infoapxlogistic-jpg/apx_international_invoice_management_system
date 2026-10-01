@@ -18,9 +18,9 @@ Staff can create and edit invoices and record payments. Only a Super Administrat
 invoices, delete payments, delete customers, and manage companies and users.
 
 ## Companies shown
-Only APXpress is switched on for now (`ACTIVE_COMPANIES=APX` in `backend/.env`).
-To bring Creonetix back, set `ACTIVE_COMPANIES=APX,CRX` and restart the backend; the company pickers
-and Creonetix menu items then appear automatically.
+Both APXpress and Creonetix are on (`ACTIVE_COMPANIES=APX,CRX` in `backend/.env` or the hosting variables).
+On first start each company gets its details, terms and logo from the client's invoices (`backend/app/initial_data.py`);
+anything later changed in Company Settings is kept.
 
 ## First-time setup
 1. Open `backend/.env` and put the MySQL root password in `DATABASE_URL`
