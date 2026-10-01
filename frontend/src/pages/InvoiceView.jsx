@@ -83,15 +83,15 @@ export function InvoicePaper({ inv }) {
               {c.vat_number && <div>GB VAT: {c.vat_number}</div>}
             </div>
           )}
+          {/* Optional; sits under the company details so the items table starts higher. */}
+          {inv.notes && (
+            <section className="i2-desc">
+              <h4>Invoice description</h4>
+              <div className="pre">{inv.notes}</div>
+            </section>
+          )}
         </div>
       </section>
-
-      {inv.notes && (
-        <section className="i2-desc">
-          <h4>Invoice description</h4>
-          <div className="pre">{inv.notes}</div>
-        </section>
-      )}
 
       <table className="i2-items">
         <thead>
