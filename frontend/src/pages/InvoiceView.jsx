@@ -83,15 +83,23 @@ export function InvoicePaper({ inv }) {
               {c.vat_number && <div>GB VAT: {c.vat_number}</div>}
             </div>
           )}
-          {/* Optional; sits under the company details so the items table starts higher. */}
-          {inv.notes && (
-            <section className="i2-desc">
-              <h4>Invoice description</h4>
-              <div className="pre">{inv.notes}</div>
-            </section>
-          )}
         </div>
       </section>
+
+      {hasPayment && (
+        <section className="i2-pay i2-pay-top">
+          <h3>Payment details</h3>
+          <table>
+            <tbody>
+              {bank.map(([k, v]) => (
+                <tr key={k}><th>{k}:</th><td>{v}</td></tr>
+              ))}
+              <tr><th>Payment reference:</th><td>{inv.invoice_no}</td></tr>
+            </tbody>
+          </table>
+          {c.bank_details && <div className="pre i2-bank-extra">{c.bank_details}</div>}
+        </section>
+      )}
 
       <table className="i2-items">
         <thead>
@@ -117,19 +125,12 @@ export function InvoicePaper({ inv }) {
       </table>
 
       <section className="i2-bottom">
-        <div className="i2-pay">
-          {hasPayment && (
+        {/* Optional: only printed when something was typed in. */}
+        <div className="i2-desc">
+          {inv.notes && (
             <>
-              <h3>Payment details</h3>
-              <table>
-                <tbody>
-                  {bank.map(([k, v]) => (
-                    <tr key={k}><th>{k}:</th><td>{v}</td></tr>
-                  ))}
-                  <tr><th>Payment reference:</th><td>{inv.invoice_no}</td></tr>
-                </tbody>
-              </table>
-              {c.bank_details && <div className="pre i2-bank-extra">{c.bank_details}</div>}
+              <h4>Invoice description</h4>
+              <div className="pre">{inv.notes}</div>
             </>
           )}
         </div>

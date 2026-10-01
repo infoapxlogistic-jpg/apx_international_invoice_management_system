@@ -408,7 +408,8 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--primary)
 .i2-upper { text-transform: uppercase; }
 .i2-gap { margin-top: 14px; }
 
-.i2-desc { margin-top: 18px; padding-top: 14px; border-top: 1px solid #e3e8eb; }
+.i2-pay-top { margin-top: 22px; width: 50%; padding-right: 16px; }
+.i2-desc { padding-top: 4px; }
 .i2-desc h4 { font-size: 12.5px; font-weight: 600; color: #1a2328; text-transform: none; letter-spacing: 0; margin: 0; }
 
 .i2-items { width: 100%; border-collapse: collapse; margin-top: 28px; }
@@ -625,6 +626,7 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--primary)
   .i2-items th, .i2-items td { padding: 8px 8px; font-size: 12px; }
   .i2-items th { font-size: 12px; white-space: nowrap; }
   .i2-bottom { grid-template-columns: 1fr; gap: 20px; padding: 0; }
+  .i2-pay-top { width: 100%; padding-right: 0; }
   .i2-pay th { padding-right: 14px; }
   .i2-due strong { font-size: 16px; }
   .i2-terms, .i2-note { padding: 0; margin-left: 0; margin-right: 0; }
@@ -658,7 +660,8 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--primary)
   .i2-logo .logo-lg { max-height: 78px; max-width: 180px; }
   .i2-parties { margin-top: 18px; gap: 24px; }
   .i2-gap { margin-top: 8px; }
-  .i2-desc { margin-top: 10px; padding-top: 8px; }
+  .i2-pay-top { margin-top: 14px; }
+  .i2-desc { padding-top: 2px; }
   .i2-desc h4 { font-size: 11px; }
   .i2-items { display: table; margin-top: 16px; }
   .i2-items th, .i2-items td { padding: 6px 12px; font-size: inherit; }
