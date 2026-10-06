@@ -16,7 +16,11 @@ function CompanyCard({ company, onChange }) {
   const [msg, setMsg] = useState({ kind: '', text: '' })
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
-
+  const { currencies } = useCompanies()
+  const pickCurrency = (e) => {
+    const c = currencies.find((x) => x.code === e.target.value)
+    if (c) setForm({ ...form, currency_code: c.code, currency_symbol: c.symbol.trim(), currency_name: `${c.code} ${c.name}` })
+  }
   const save = async (e) => {
     e.preventDefault()
     setBusy(true)
@@ -88,14 +92,15 @@ function CompanyCard({ company, onChange }) {
         <Field label="Website"><input value={form.website} onChange={set('website')} /></Field>
         <Field label="Company no."><input value={form.ntn} onChange={set('ntn')} /></Field>
         <Field label="GB VAT number"><input value={form.vat_number} onChange={set('vat_number')} /></Field>
-        <Field label="Currency code" required hint="e.g. GBP, PKR, USD">
-          <input value={form.currency_code} onChange={set('currency_code')} maxLength={3} required />
-        </Field>
-        <Field label="Currency symbol" required hint="e.g. £, Rs, $">
-          <input value={form.currency_symbol} onChange={set('currency_symbol')} maxLength={5} required />
-        </Field>
-        <Field label="Currency name" hint="Printed next to Gross, e.g. GBP Pound Sterling">
-          <input value={form.currency_name} onChange={set('currency_name')} />
+        <Field label="Default currency" hint="New invoices start in this currency; it can be changed on each invoice">
+          <select value={form.currency_code} onChange={pickCurrency}>
+            {!currencies.some((c) => c.code === form.currency_code) && (
+              <option value={form.currency_code}>{form.currency_code}</option>
+            )}
+            {currencies.map((c) => (
+              <option key={c.code} value={c.code}>{c.code} · {c.symbol.trim()} · {c.name}</option>
+            ))}
+          </select>
         </Field>
         <Field label="Date format on invoice">
           <select value={form.date_format} onChange={set('date_format')}>

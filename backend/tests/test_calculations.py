@@ -135,18 +135,24 @@ def test_totals_sent_by_the_browser_are_ignored(client, auth, company_id):
     assert D(inv["total"]) == D("120.00")
 
 
-def test_monthly_record_adds_up(client, auth, make_invoice):
-    before = {m["month"]: m for m in client.get("/api/dashboard", headers=auth).json()["companies"][0]["monthly"]}
-    old = before.get("2025-03", {"count": 0, "subtotal": 0, "tax": 0, "total": 0})
+def _month_row(client, auth, company_id, month, currency="GBP"):
+    companies = client.get("/api/dashboard", headers=auth).json()["companies"]
+    company = next(c for c in companies if c["company_id"] == company_id)
+    return next(
+        (m for m in company["monthly"] if m["month"] == month and m["currency_code"] == currency),
+        {"count": 0, "subtotal": 0, "tax": 0, "total": 0},
+    )
+
+
+def test_monthly_record_adds_up(client, auth, make_invoice, company_id):
+    old = _month_row(client, auth, company_id, "2025-03")
     make_invoice([("A", 1, 100, True)], invoice_date="2025-03-05")   # 100 + 20
     make_invoice([("B", 1, 945, False)], invoice_date="2025-03-20")  # 945 + 0
-    after = {m["month"]: m for m in client.get("/api/dashboard", headers=auth).json()["companies"][0]["monthly"]}
-    m = after["2025-03"]
+    m = _month_row(client, auth, company_id, "2025-03")
     assert m["count"] == old["count"] + 2
     assert D(str(m["subtotal"])) == D(str(old["subtotal"])) + D("1045")
     assert D(str(m["tax"])) == D(str(old["tax"])) + D("20")
     assert D(str(m["total"])) == D(str(old["total"])) + D("1065")
-
 
 def test_invoice_numbers_go_up_and_never_repeat(make_invoice):
     a = make_invoice([("A", 1, 1, False)])

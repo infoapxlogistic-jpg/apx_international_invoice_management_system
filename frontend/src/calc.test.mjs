@@ -18,10 +18,13 @@ const cases = [
   ['discount off taxable first', [[1, 100, true], [1, 50, false]], 20, 30, { net: 120, vat: 14, gross: 134 }],
 ]
 
+// Yen has no decimals: same lines as the server test (backend/tests/test_currency.py).
+cases.push(['yen, whole numbers', [[1, 1499.5, false], [3, 333.4, true]], 20, 0, { net: 2500, vat: 200, gross: 2700 }, 0])
+
 let failed = 0
-for (const [name, lines, rate, discount, want] of cases) {
+for (const [name, lines, rate, discount, want, decimals = 2] of cases) {
   const items = lines.map(([quantity, unit_price, taxable]) => ({ quantity, unit_price, taxable }))
-  const got = invoiceTotals(items, rate, discount)
+  const got = invoiceTotals(items, rate, discount, decimals)
   try {
     assert.deepEqual({ net: got.net, vat: got.vat, gross: got.gross }, want)
     console.log(`ok   ${name}`)

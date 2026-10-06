@@ -152,6 +152,8 @@ class InvoiceItemOut(ORM):
 class InvoiceIn(BaseModel):
     company_id: int
     invoice_no: str | None = Field(default=None, max_length=30)
+    # Empty = the company's default currency.
+    currency_code: str | None = Field(default=None, max_length=3)
     customer_id: int | None = None
     save_customer: bool = True
     invoice_date: date
@@ -171,6 +173,18 @@ class InvoiceIn(BaseModel):
     discount: Decimal = Field(default=Decimal(0), ge=0)
     tax_rate: Decimal = Field(default=Decimal(0), ge=0, le=100)
     notes: str | None = None
+
+    @field_validator("currency_code", mode="before")
+    @classmethod
+    def _currency(cls, v):
+        from .currencies import CURRENCIES
+
+        if v is None or str(v).strip() == "":
+            return None
+        code = str(v).strip().upper()
+        if code not in CURRENCIES:
+            raise ValueError(f"Currency must be one of {', '.join(CURRENCIES)}")
+        return code
 
     _s = field_validator(
         "customer_name", "customer_ntn_cnic", "customer_phone", "customer_email",
@@ -201,7 +215,10 @@ class InvoiceSummary(ORM):
     company_id: int
     company_name: str
     company_code: str
+    currency_code: str
     currency_symbol: str
+    currency_name: str
+    currency_decimals: int
     invoice_no: str
     invoice_date: date
     due_date: date | None

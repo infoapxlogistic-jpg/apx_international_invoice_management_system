@@ -13,7 +13,8 @@ function lines(text) {
 export function InvoicePaper({ inv }) {
   const c = inv.company
   const sym = inv.currency_symbol
-  const cur = c.currency_code
+  const cur = inv.currency_code
+  const dec = inv.currency_decimals
   const dateFmt = c.date_format
   const vatRate = Number(inv.tax_rate)
 
@@ -116,9 +117,9 @@ export function InvoicePaper({ inv }) {
             <tr key={it.id}>
               <td className="pre">{it.description}</td>
               <td className="num">{Number(it.quantity)}</td>
-              <td className="num">{money(it.unit_price, sym)}</td>
+              <td className="num">{money(it.unit_price, sym, dec)}</td>
               <td className="num">{it.taxable && vatRate > 0 ? `${vatRate}% VAT` : ''}</td>
-              <td className="num">{money(it.amount, sym)}</td>
+              <td className="num">{money(it.amount, sym, dec)}</td>
             </tr>
           ))}
         </tbody>
@@ -136,10 +137,10 @@ export function InvoicePaper({ inv }) {
         </div>
         <table className="i2-totals">
           <tbody>
-            <tr><th>Subtotal</th><td>{money(Number(inv.subtotal), sym)}</td></tr>
-            {Number(inv.discount) > 0 && <tr><th>Discount</th><td>-{money(inv.discount, sym)}</td></tr>}
-            <tr><th>Tax</th><td>{money(inv.tax_amount, sym)}</td></tr>
-            <tr className="i2-total"><th>Total</th><td>{money(inv.total, sym)}</td></tr>
+            <tr><th>Subtotal</th><td>{money(Number(inv.subtotal), sym, dec)}</td></tr>
+            {Number(inv.discount) > 0 && <tr><th>Discount</th><td>-{money(inv.discount, sym, dec)}</td></tr>}
+            <tr><th>Tax</th><td>{money(inv.tax_amount, sym, dec)}</td></tr>
+            <tr className="i2-total"><th>Total</th><td>{money(inv.total, sym, dec)}</td></tr>
 
           </tbody>
         </table>
@@ -147,7 +148,7 @@ export function InvoicePaper({ inv }) {
 
       <section className="i2-due">
         <strong>
-          {money(inv.total, sym)} due{inv.due_date ? ` by ${fmtDateAs(inv.due_date, dateFmt)}` : ''}
+          {money(inv.total, sym, dec)} due{inv.due_date ? ` by ${fmtDateAs(inv.due_date, dateFmt)}` : ''}
         </strong>
         {c.pay_online_url && (
           <a className="i2-pay-btn" href={c.pay_online_url} target="_blank" rel="noreferrer">Pay invoice online</a>
@@ -203,7 +204,7 @@ export default function InvoiceView() {
           <Link to="/invoices" className="back"><Icon name="back" size={16} /> All invoices</Link>
           <h1>{inv.invoice_no}</h1>
           <p className="muted">
-            {inv.customer_name} · {money(inv.total, inv.currency_symbol)}
+            {inv.customer_name} · {money(inv.total, inv.currency_symbol, inv.currency_decimals)}
             {inv.created_by_name && ` · created by ${inv.created_by_name}`}
           </p>
         </div>

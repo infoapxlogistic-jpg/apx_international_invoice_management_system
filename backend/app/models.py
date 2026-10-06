@@ -99,6 +99,7 @@ class Invoice(TimestampMixin, Base):
     invoice_no: Mapped[str] = mapped_column(String(30))
     invoice_date: Mapped[date] = mapped_column(Date, index=True)
     due_date: Mapped[date | None] = mapped_column(Date)
+    currency_code: Mapped[str] = mapped_column(String(3), default="GBP")
 
     # Customer details are copied onto the invoice so an issued invoice never
     # changes when the customer record is edited later.

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, qs } from '../api'
-import { useCompanies } from '../companies'
+import { findCurrency, useCompanies } from '../companies'
 import Icon from '../components/Icon'
 import { Alert, CompanyLogo, Field, Spinner } from '../components/ui'
 import { invoiceTotals } from '../calc'
@@ -26,6 +26,7 @@ function blankForm(company) {
   return {
     company_id: company?.id || '',
     invoice_no: '',
+    currency_code: company?.currency_code || 'GBP',
     customer_id: null,
     save_customer: true,
     invoice_date: d,
@@ -43,6 +44,7 @@ function fromInvoice(inv, { copy }) {
   return {
     company_id: inv.company_id,
     invoice_no: copy ? '' : inv.invoice_no,
+    currency_code: inv.currency_code,
     customer_id: inv.customer_id,
     save_customer: true,
     invoice_date: copy ? d : inv.invoice_date,
@@ -125,7 +127,7 @@ export default function InvoiceForm() {
   const { id } = useParams()
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { reload: reloadCompanies } = useCompanies()
+  const { reload: reloadCompanies, currencies } = useCompanies()
   const editing = !!id
   const copyFrom = params.get('copy')
 
@@ -165,11 +167,13 @@ export default function InvoiceForm() {
   }, [id, copyFrom, params.get('company')])
 
   const company = companies?.find((c) => c.id === Number(form?.company_id))
-  const sym = company?.currency_symbol || '£'
+  const currency = findCurrency(currencies, form?.currency_code || company?.currency_code)
+  const sym = currency.symbol
+  const dec = currency.decimals
 
   const totals = useMemo(
-    () => (form ? invoiceTotals(form.items, form.tax_rate, form.discount) : null),
-    [form],
+    () => (form ? invoiceTotals(form.items, form.tax_rate, form.discount, dec) : null),
+    [form, dec],
   )
 
   if (error && !form) return <Alert>{error}</Alert>
@@ -196,7 +200,12 @@ export default function InvoiceForm() {
     }))
 
   const switchCompany = (c) =>
-    setForm((f) => ({ ...f, company_id: c.id, tax_rate: String(Number(c.default_tax_rate)) }))
+    setForm((f) => ({
+      ...f,
+      company_id: c.id,
+      tax_rate: String(Number(c.default_tax_rate)),
+      currency_code: c.currency_code || 'GBP',
+    }))
 
   const autoNumber = company ? `${company.invoice_prefix}${company.next_invoice_number}` : ''
 
@@ -324,6 +333,15 @@ export default function InvoiceForm() {
             <Field label="Invoice number" hint={editing ? 'You can change it; it must not be used by another invoice' : 'Leave empty to use the next number automatically'}>
               <input value={form.invoice_no} onChange={set('invoice_no')} placeholder={editing ? '' : `${autoNumber} (automatic)`} required={editing} />
             </Field>
+            <Field label="Currency" hint="Amounts are entered in this currency. Nothing is converted.">
+              <select value={form.currency_code} onChange={set('currency_code')}>
+                {currencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} · {c.symbol.trim()} · {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="Invoice date" required>
               <input type="date" value={form.invoice_date} onChange={set('invoice_date')} required />
             </Field>
@@ -356,7 +374,7 @@ export default function InvoiceForm() {
             <span>#</span>
             <span>Description</span>
             <span className="num">Qty</span>
-            <span className="num">Unit price ({sym})</span>
+            <span className="num">Unit price ({currency.code})</span>
             <span className="center">VAT</span>
             <span className="num">Total</span>
             <span />
@@ -383,8 +401,8 @@ export default function InvoiceForm() {
                 className="num price"
                 type="number"
                 min="0"
-                step="0.01"
-                placeholder="0.00"
+                step={dec ? '0.01' : '1'}
+                placeholder={dec ? '0.00' : '0'}
                 value={it.unit_price}
                 onChange={(e) => setItem(idx, 'unit_price', e.target.value)}
                 aria-label="Unit price"
@@ -393,7 +411,7 @@ export default function InvoiceForm() {
                 <input type="checkbox" checked={it.taxable} onChange={(e) => setItem(idx, 'taxable', e.target.checked)} />
                 <span>VAT</span>
               </label>
-              <span className="num line-total">{money(totals.amounts[idx], sym)}</span>
+              <span className="num line-total">{money(totals.amounts[idx], sym, dec)}</span>
               <button
                 type="button"
                 className="icon-btn danger"
@@ -428,14 +446,14 @@ export default function InvoiceForm() {
             />
           </Field>
           <div className="totals">
-            <div><span>Subtotal</span><strong>{money(totals.net, sym)}</strong></div>
-            {totals.discount > 0 && <div><span>Discount</span><strong>-{money(totals.discount, sym)}</strong></div>}
+            <div><span>Subtotal</span><strong>{money(totals.net, sym, dec)}</strong></div>
+            {totals.discount > 0 && <div><span>Discount</span><strong>-{money(totals.discount, sym, dec)}</strong></div>}
             <div>
               <span>VAT rate (%)</span>
               <input type="number" min="0" max="100" step="0.01" className="num" value={form.tax_rate} onChange={set('tax_rate')} />
             </div>
-            <div><span>Tax</span><strong>{money(totals.vat, sym)}</strong></div>
-            <div className="grand"><span>Total</span><strong>{money(totals.gross, sym)}</strong></div>
+            <div><span>Tax</span><strong>{money(totals.vat, sym, dec)}</strong></div>
+            <div className="grand"><span>Total</span><strong>{money(totals.gross, sym, dec)}</strong></div>
           </div>
         </div>
       </section>

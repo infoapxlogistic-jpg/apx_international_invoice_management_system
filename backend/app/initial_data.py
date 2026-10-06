@@ -14,6 +14,7 @@ from pathlib import Path
 from sqlalchemy import func, select
 
 from .config import settings
+from .currencies import normalise
 from .models import Company, Invoice, User
 
 LOGO_DIR = Path(__file__).resolve().parent / "default_logos"
@@ -157,6 +158,7 @@ def _create_first_invoice(db, apx: Company) -> None:
     inv = Invoice(
         company_id=apx.id,
         invoice_no=f"{apx.invoice_prefix}{apx.next_invoice_number}",
+        currency_code=normalise(apx.currency_code),
         amount_paid=Decimal(0),
         status="unpaid",
         created_by_id=admin.id if admin else None,

@@ -5,6 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from ..currencies import info as currency_info
+from ..currencies import normalise as currency_code_of
+from ..currencies import round_money
 from ..database import get_db
 from ..models import Company, Customer, Invoice, InvoiceItem, Payment, User
 from ..schemas import (
@@ -46,22 +49,26 @@ def refresh_status(inv: Invoice) -> None:
 
 
 def summary(inv: Invoice) -> InvoiceSummary:
+    cur = currency_info(inv.currency_code)
     return InvoiceSummary(
         id=inv.id,
         company_id=inv.company_id,
         company_name=inv.company.name,
         company_code=inv.company.code,
-        currency_symbol=inv.company.currency_symbol,
+        currency_code=cur["code"],
+        currency_symbol=cur["symbol"],
+        currency_name=cur["name"],
+        currency_decimals=cur["decimals"],
         invoice_no=inv.invoice_no,
         invoice_date=inv.invoice_date,
         due_date=inv.due_date,
         customer_name=inv.customer_name,
         customer_phone=inv.customer_phone,
-        net_amount=money(inv.subtotal - inv.discount),
+        net_amount=round_money(inv.subtotal - inv.discount, inv.currency_code),
         vat_amount=inv.tax_amount,
         total=inv.total,
         amount_paid=inv.amount_paid,
-        balance=money(inv.total - inv.amount_paid) if inv.status != "cancelled" else Decimal(0),
+        balance=round_money(inv.total - inv.amount_paid, inv.currency_code) if inv.status != "cancelled" else Decimal(0),
         status=inv.status,
         overdue=is_overdue(inv),
     )
@@ -112,6 +119,9 @@ def _load(db: Session, invoice_id: int) -> Invoice:
 
 def _apply(inv: Invoice, data: InvoiceIn) -> None:
     """Copy form data onto the invoice and recompute every total on the server."""
+    def money(value):  # rounds to the invoice currency (pence, cents, whole yen)
+        return round_money(value, inv.currency_code)
+
     for field in (
         "invoice_date", "due_date", "customer_name", "customer_ntn_cnic", "customer_phone",
         "customer_email", "customer_address", "customer_city", "customer_county", "customer_country",
@@ -278,6 +288,7 @@ def create_invoice(data: InvoiceIn, db: Session = Depends(get_db), user: User = 
     inv = Invoice(
         company_id=company.id,
         invoice_no=invoice_no,
+        currency_code=data.currency_code or currency_code_of(company.currency_code),
         amount_paid=Decimal(0),
         status="unpaid",
         created_by_id=user.id,
@@ -296,6 +307,8 @@ def update_invoice(invoice_id: int, data: InvoiceIn, db: Session = Depends(get_d
         raise HTTPException(400, "A cancelled invoice cannot be edited")
     if data.company_id != inv.company_id:
         raise HTTPException(400, "An invoice cannot be moved to another company")
+    if data.currency_code:
+        inv.currency_code = data.currency_code
     new_no = (data.invoice_no or "").strip()
     if new_no and new_no != inv.invoice_no:
         _check_number_free(db, inv.company_id, new_no)

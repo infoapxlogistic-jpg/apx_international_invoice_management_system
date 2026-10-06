@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import BASE_DIR, settings
+from .currencies import CURRENCIES
 from .routers import auth, companies, customers, dashboard, invoices, users
 from .seed import init_db
 
@@ -35,6 +36,11 @@ for r in (auth, users, companies, customers, invoices, dashboard):
 @app.get("/api/health")
 def health():
     return {"ok": True}
+
+
+@app.get("/api/currencies")
+def currencies():
+    return [{"code": code, **c} for code, c in CURRENCIES.items()]
 
 
 app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")

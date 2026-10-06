@@ -60,6 +60,7 @@ NEW_COLUMNS = {
         "county": "VARCHAR(80) NULL",
     },
     "invoices": {
+        "currency_code": "VARCHAR(3) NOT NULL DEFAULT 'GBP'",
         "customer_county": "VARCHAR(80) NULL",
         "taxable_total": "NUMERIC(14,2) NOT NULL DEFAULT 0",
         "non_taxable_total": "NUMERIC(14,2) NOT NULL DEFAULT 0",

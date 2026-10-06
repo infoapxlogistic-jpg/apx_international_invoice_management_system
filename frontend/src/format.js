@@ -1,6 +1,7 @@
-export function money(value, symbol = '£') {
+// decimals: 2 for most currencies, 0 for yen.
+export function money(value, symbol = '£', decimals = 2) {
   const n = Number(value || 0)
-  const s = n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const s = n.toLocaleString('en-GB', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
   return n < 0 ? `-${symbol}${s.slice(1)}` : `${symbol}${s}`
 }
 

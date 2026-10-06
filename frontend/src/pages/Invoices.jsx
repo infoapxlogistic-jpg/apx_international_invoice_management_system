@@ -4,11 +4,22 @@ import { api, qs } from '../api'
 import { useCompanies } from '../companies'
 import Icon from '../components/Icon'
 import { Alert, Empty, NewInvoiceButtons, Spinner } from '../components/ui'
-import { fmtDate, money, monthLabel, monthRange, round2 } from '../format'
+import { roundTo } from '../calc'
+import { fmtDate, money, monthLabel, monthRange } from '../format'
 
 const FILTER_KEYS = ['company_id', 'q', 'date_from', 'date_to', 'customer_id']
 const LIMIT = 500
 
+
+// Totals are kept per currency; pounds and dollars are never added together.
+function addTo(sums, inv) {
+  const s = (sums[inv.currency_code] ||= {
+    code: inv.currency_code, sym: inv.currency_symbol, dec: inv.currency_decimals, net: 0, vat: 0, total: 0,
+  })
+  s.net = roundTo(s.net + Number(inv.net_amount), s.dec)
+  s.vat = roundTo(s.vat + Number(inv.vat_amount), s.dec)
+  s.total = roundTo(s.total + Number(inv.total), s.dec)
+}
 
 function groupByMonth(items) {
   const groups = []
@@ -16,15 +27,20 @@ function groupByMonth(items) {
     const key = inv.invoice_date.slice(0, 7)
     let g = groups[groups.length - 1]
     if (!g || g.key !== key) {
-      g = { key, items: [], net: 0, vat: 0, total: 0 }
+      g = { key, items: [], sums: {} }
       groups.push(g)
     }
     g.items.push(inv)
-    g.net = round2(g.net + Number(inv.net_amount))
-    g.vat = round2(g.vat + Number(inv.vat_amount))
-    g.total = round2(g.total + Number(inv.total))
+    addTo(g.sums, inv)
   }
   return groups
+}
+
+// "£10,000.00 · $2,500.00"
+function sumText(sums, field) {
+  return Object.values(sums)
+    .map((s) => money(s[field], s.sym, s.dec))
+    .join(' · ')
 }
 
 export default function Invoices() {
@@ -74,8 +90,8 @@ export default function Invoices() {
 
   const hasFilters = FILTER_KEYS.some((k) => filters[k])
   const groups = data ? groupByMonth(data.items) : []
-  const sym = data?.items[0]?.currency_symbol || companies[0]?.currency_symbol || '£'
-  const grand = groups.reduce((a, g) => round2(a + g.total), 0)
+  const grand = {}
+  data?.items.forEach((inv) => addTo(grand, inv))
 
   return (
     <>
@@ -84,7 +100,7 @@ export default function Invoices() {
           <h1>Invoices</h1>
           <p className="muted">
             {data
-              ? `${data.total} invoice${data.total === 1 ? '' : 's'}${data.total ? ` · ${money(grand, sym)}` : ''}`
+              ? `${data.total} invoice${data.total === 1 ? '' : 's'}${data.total ? ` · ${sumText(grand, 'total')}` : ''}`
               : 'Loading…'}
           </p>
         </div>
@@ -158,9 +174,9 @@ export default function Invoices() {
                         <span className="muted"> · {g.items.length} invoice{g.items.length === 1 ? '' : 's'}</span>
                       </td>
                       <td className="hide-sm" />
-                      <td className="num hide-md">{money(g.net, sym)}</td>
-                      <td className="num hide-md">{money(g.vat, sym)}</td>
-                      <td className="num"><strong>{money(g.total, sym)}</strong></td>
+                      <td className="num hide-md">{sumText(g.sums, 'net')}</td>
+                      <td className="num hide-md">{sumText(g.sums, 'vat')}</td>
+                      <td className="num"><strong>{sumText(g.sums, 'total')}</strong></td>
                     </tr>
                     {g.items.map((i) => (
                       <tr key={i.id} className="clickable" onClick={() => navigate(`/invoices/${i.id}`)}>
@@ -171,9 +187,9 @@ export default function Invoices() {
                           <small className="muted show-sm">{fmtDate(i.invoice_date)}</small>
                         </td>
                         <td className="hide-sm">{fmtDate(i.invoice_date)}</td>
-                        <td className="num hide-md">{money(i.net_amount, i.currency_symbol)}</td>
-                        <td className="num hide-md">{money(i.vat_amount, i.currency_symbol)}</td>
-                        <td className="num">{money(i.total, i.currency_symbol)}</td>
+                        <td className="num hide-md">{money(i.net_amount, i.currency_symbol, i.currency_decimals)}</td>
+                        <td className="num hide-md">{money(i.vat_amount, i.currency_symbol, i.currency_decimals)}</td>
+                        <td className="num">{money(i.total, i.currency_symbol, i.currency_decimals)}</td>
                       </tr>
                     ))}
                   </Fragment>

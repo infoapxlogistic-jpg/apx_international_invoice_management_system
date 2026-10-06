@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from ..currencies import info as currency_info
+from ..currencies import normalise
 from ..database import get_db
 from ..models import Invoice
 from ..security import current_user
@@ -15,13 +17,34 @@ from .invoices import summary
 router = APIRouter(prefix="/dashboard", tags=["dashboard"], dependencies=[Depends(current_user)])
 
 
-def _empty_month(key: str) -> dict:
-    return {"month": key, "count": 0, "subtotal": Decimal(0), "tax": Decimal(0), "total": Decimal(0)}
+def _bucket(code: str) -> dict:
+    cur = currency_info(code)
+    return {
+        "currency_code": cur["code"],
+        "currency_symbol": cur["symbol"],
+        "currency_decimals": cur["decimals"],
+        "count": 0,
+        "subtotal": Decimal(0),
+        "tax": Decimal(0),
+        "total": Decimal(0),
+    }
+
+
+def _add(bucket: dict, inv: Invoice) -> None:
+    bucket["count"] += 1
+    bucket["subtotal"] += inv.subtotal - inv.discount
+    bucket["tax"] += inv.tax_amount
+    bucket["total"] += inv.total
+
+
+def _ordered(buckets: dict, home: str) -> list[dict]:
+    # The company's own currency first, then the others alphabetically.
+    return [buckets[k] for k in sorted(buckets, key=lambda c: (c != home, c))]
 
 
 @router.get("")
 def dashboard(db: Session = Depends(get_db)):
-    """Monthly record of invoices: counts and totals per month, per company."""
+    """Monthly record of invoices per company. Totals are kept per currency and never added across currencies."""
     today = date.today()
     this_month = today.strftime("%Y-%m")
     this_year = str(today.year)
@@ -32,46 +55,50 @@ def dashboard(db: Session = Depends(get_db)):
         select(Invoice).where(Invoice.status != "cancelled", Invoice.company_id.in_(ids))
     ).all()
 
-    per_company = {
-        c.id: {
+    data = {}
+    for c in companies:
+        home = normalise(c.currency_code)
+        data[c.id] = {
+            "company": c,
+            "home": home,
+            "all": {},
+            "month": {},
+            "year": {},
+            "monthly": defaultdict(dict),
+        }
+
+    for inv in invoices:
+        d = data[inv.company_id]
+        code = normalise(inv.currency_code)
+        key = inv.invoice_date.strftime("%Y-%m")
+        _add(d["all"].setdefault(code, _bucket(code)), inv)
+        if key == this_month:
+            _add(d["month"].setdefault(code, _bucket(code)), inv)
+        if key.startswith(this_year):
+            _add(d["year"].setdefault(code, _bucket(code)), inv)
+        _add(d["monthly"][key].setdefault(code, _bucket(code)), inv)
+
+    result = []
+    for d in data.values():
+        c, home = d["company"], d["home"]
+        monthly = d["monthly"]
+        monthly.setdefault(this_month, {})
+        rows = []
+        for key in sorted(monthly, reverse=True):
+            buckets = monthly[key] or {home: _bucket(home)}
+            rows.extend({"month": key, **b} for b in _ordered(buckets, home))
+        result.append({
             "company_id": c.id,
             "company_name": c.name,
             "company_code": c.code,
-            "currency_symbol": c.currency_symbol,
             "brand_color": c.brand_color,
-            "invoice_count": 0,
-            "total": Decimal(0),
-            "this_month_count": 0,
-            "this_month_total": Decimal(0),
-            "this_year_total": Decimal(0),
-            "months": defaultdict(lambda: None),
-        }
-        for c in companies
-    }
-
-    for inv in invoices:
-        s = per_company[inv.company_id]
-        key = inv.invoice_date.strftime("%Y-%m")
-        s["invoice_count"] += 1
-        s["total"] += inv.total
-        if key == this_month:
-            s["this_month_count"] += 1
-            s["this_month_total"] += inv.total
-        if key.startswith(this_year):
-            s["this_year_total"] += inv.total
-        m = s["months"][key] or _empty_month(key)
-        m["count"] += 1
-        m["subtotal"] += inv.subtotal - inv.discount
-        m["tax"] += inv.tax_amount
-        m["total"] += inv.total
-        s["months"][key] = m
-
-    for s in per_company.values():
-        # Every month that has invoices, newest first, plus the current month even when empty.
-        months = {k: v for k, v in s["months"].items() if v}
-        months.setdefault(this_month, _empty_month(this_month))
-        s["monthly"] = [months[k] for k in sorted(months, reverse=True)]
-        del s["months"]
+            "currency_code": home,
+            "invoice_count": sum(b["count"] for b in d["all"].values()),
+            "all": _ordered(d["all"], home) or [_bucket(home)],
+            "this_month": _ordered(d["month"], home) or [_bucket(home)],
+            "this_year": _ordered(d["year"], home) or [_bucket(home)],
+            "monthly": rows,
+        })
 
     recent = db.scalars(
         select(Invoice)
@@ -81,4 +108,4 @@ def dashboard(db: Session = Depends(get_db)):
         .limit(8)
     ).all()
 
-    return {"companies": list(per_company.values()), "recent": [summary(i) for i in recent]}
+    return {"companies": result, "recent": [summary(i) for i in recent]}
