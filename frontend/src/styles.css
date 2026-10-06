@@ -640,13 +640,15 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--primary)
 
 /* ---------- Print: only the invoice ---------- */
 @media print {
-  @page { size: A4; margin: 10mm 12mm; }
+  /* No page margin = no room for the browser's own header/footer (URL, date, page 1/1).
+     The white space around the invoice is added inside the page instead. */
+  @page { size: A4; margin: 0; }
   body { background: #fff; }
   .sidebar, .topbar, .no-print, .scrim, .modal-backdrop { display: none !important; }
   .content { padding: 0; max-width: none; }
   .view-grid { display: block; }
   .view-single { max-width: none; }
-  .paper { border: 0; box-shadow: none; border-radius: 0; padding: 0; }
+  .paper { border: 0; box-shadow: none; border-radius: 0; padding: 10mm 12mm; }
   .logo-mark, .watermark { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .i2-items th, .i2-due { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .i2-items tr, .i2-bottom, .i2-due { break-inside: avoid; }
