@@ -93,6 +93,8 @@ def detail(inv: Invoice) -> InvoiceOut:
         tax_rate=inv.tax_rate,
         tax_amount=inv.tax_amount,
         notes=inv.notes,
+        payment_mode=inv.payment_mode or "bank",
+        payment_received=bool(inv.payment_received),
         created_by_name=inv.created_by.full_name if inv.created_by else None,
         created_at=inv.created_at,
         items=[InvoiceItemOut.model_validate(i) for i in inv.items],
@@ -125,7 +127,8 @@ def _apply(inv: Invoice, data: InvoiceIn) -> None:
     for field in (
         "invoice_date", "due_date", "customer_name", "customer_ntn_cnic", "customer_phone",
         "customer_email", "customer_address", "customer_city", "customer_county", "customer_country",
-        "customer_postal_code", "notes",
+        "customer_postal_code", "notes", "payment_mode",
+        "payment_received",
     ):
         setattr(inv, field, getattr(data, field))
     if data.due_date and data.due_date < data.invoice_date:

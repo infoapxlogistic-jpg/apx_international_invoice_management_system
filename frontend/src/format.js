@@ -83,3 +83,11 @@ export const METHOD_LABEL = {
   card: 'Card',
   other: 'Other',
 }
+
+// Mode of payment printed on an invoice.
+export const PAYMENT_MODES = {
+  bank: 'Bank transfer',
+  cash: 'Cash',
+  card: 'Card',
+  cheque: 'Cheque',
+}

@@ -1,16 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import Icon from '../components/Icon'
 import { Alert, CompanyLogo, Spinner } from '../components/ui'
-import { fmtDateAs, money } from '../format'
+import { PAYMENT_MODES, fmtDateAs, money } from '../format'
+import { downloadInvoicePdf } from '../pdf'
 
 function lines(text) {
   return (text || '').split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
-export function InvoicePaper({ inv }) {
+export function InvoicePaper({ inv, paperRef }) {
   const c = inv.company
   const sym = inv.currency_symbol
   const cur = inv.currency_code
@@ -34,10 +35,20 @@ export function InvoicePaper({ inv }) {
     ['BIC', c.bic],
     ['IBAN', c.iban],
   ].filter(([, v]) => v)
-  const hasPayment = bank.length > 0 || c.bank_details
+  const mode = inv.payment_mode || 'bank'
+  const received = !!inv.payment_received
+  // Bank details are only worth printing while a bank transfer is still to come.
+  const showBank = mode === 'bank' && !received
+  const hasPayment = !showBank || bank.length > 0 || c.bank_details
+  const receivedAs = {
+    bank: ['Bank transfer received', 'by bank transfer'],
+    cash: ['Cash payment received', 'in cash'],
+    card: ['Card payment received', 'by card'],
+    cheque: ['Cheque received', 'by cheque'],
+  }[mode]
 
   return (
-    <article className="paper inv2" style={{ '--brand': c.brand_color }}>
+    <article ref={paperRef} className="paper inv2" style={{ '--brand': c.brand_color }}>
 
       <header className="i2-head">
         <div>
@@ -92,13 +103,23 @@ export function InvoicePaper({ inv }) {
           <h3>Payment details</h3>
           <table>
             <tbody>
-              {bank.map(([k, v]) => (
-                <tr key={k}><th>{k}:</th><td>{v}</td></tr>
-              ))}
+              {showBank ? (
+                bank.map(([k, v]) => (
+                  <tr key={k}><th>{k}:</th><td>{v}</td></tr>
+                ))
+              ) : (
+                <>
+                  <tr><th>Mode of payment:</th><td>{PAYMENT_MODES[mode]}</td></tr>
+                  {mode === 'cheque' && !received && (
+                    <tr><th>Cheque payable to:</th><td>{c.account_holder || c.name}</td></tr>
+                  )}
+                  {received && <tr><th>Status:</th><td>{receivedAs[0]}</td></tr>}
+                </>
+              )}
               <tr><th>Payment reference:</th><td>{inv.invoice_no}</td></tr>
             </tbody>
           </table>
-          {c.bank_details && <div className="pre i2-bank-extra">{c.bank_details}</div>}
+          {showBank && c.bank_details && <div className="pre i2-bank-extra">{c.bank_details}</div>}
         </section>
       )}
 
@@ -148,9 +169,11 @@ export function InvoicePaper({ inv }) {
 
       <section className="i2-due">
         <strong>
-          {money(inv.total, sym, dec)} due{inv.due_date ? ` by ${fmtDateAs(inv.due_date, dateFmt)}` : ''}
+          {received
+            ? `${money(inv.total, sym, dec)} received ${receivedAs[1]}`
+            : `${money(inv.total, sym, dec)} due${inv.due_date ? ` by ${fmtDateAs(inv.due_date, dateFmt)}` : ''}`}
         </strong>
-        {c.pay_online_url && (
+        {!received && (mode === 'bank' || mode === 'card') && c.pay_online_url && (
           <a className="i2-pay-btn" href={c.pay_online_url} target="_blank" rel="noreferrer">Pay invoice online</a>
         )}
       </section>
@@ -172,6 +195,19 @@ export default function InvoiceView() {
   const navigate = useNavigate()
   const [inv, setInv] = useState(null)
   const [error, setError] = useState('')
+  const [making, setMaking] = useState(false)
+  const paperRef = useRef(null)
+
+  const downloadPdf = async () => {
+    setMaking(true)
+    try {
+      await downloadInvoicePdf(paperRef.current, `${inv.invoice_no} - ${inv.customer_name}.pdf`)
+    } catch (e) {
+      setError(`Could not make the PDF: ${e.message}`)
+    } finally {
+      setMaking(false)
+    }
+  }
 
   useEffect(() => {
     api.get(`/invoices/${id}`).then(setInv).catch((e) => setError(e.message))
@@ -209,8 +245,11 @@ export default function InvoiceView() {
           </p>
         </div>
         <div className="actions">
-          <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-            <Icon name="print" /> Print / PDF
+          <button type="button" className="btn btn-primary" onClick={downloadPdf} disabled={making}>
+            <Icon name="download" /> {making ? 'Making PDF…' : 'Download PDF'}
+          </button>
+          <button type="button" className="btn" onClick={() => window.print()}>
+            <Icon name="print" /> Print
           </button>
           <Link className="btn" to={`/invoices/${inv.id}/edit`}><Icon name="edit" /> Edit</Link>
           <button type="button" className="btn" onClick={() => navigate(`/invoices/new?copy=${inv.id}`)}>
@@ -227,7 +266,7 @@ export default function InvoiceView() {
       <div className="no-print"><Alert>{error}</Alert></div>
 
       <div className="view-single">
-        <InvoicePaper inv={inv} />
+        <InvoicePaper inv={inv} paperRef={paperRef} />
       </div>
     </>
   )

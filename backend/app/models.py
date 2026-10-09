@@ -100,6 +100,10 @@ class Invoice(TimestampMixin, Base):
     invoice_date: Mapped[date] = mapped_column(Date, index=True)
     due_date: Mapped[date | None] = mapped_column(Date)
     currency_code: Mapped[str] = mapped_column(String(3), default="GBP")
+    # How the customer pays (bank | cash | card | cheque) and whether it has already been received;
+    # both only change what is printed on the invoice.
+    payment_mode: Mapped[str] = mapped_column(String(10), default="bank")
+    payment_received: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Customer details are copied onto the invoice so an issued invoice never
     # changes when the customer record is edited later.

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Role = Literal["super_admin", "staff"]
 PaymentMethod = Literal["cash", "bank_transfer", "cheque", "card", "other"]
+PaymentMode = Literal["bank", "cash", "card", "cheque"]
 InvoiceStatus = Literal["unpaid", "partial", "paid", "cancelled"]
 DateFormat = Literal["DD MMM YYYY", "MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"]
 
@@ -158,6 +159,8 @@ class InvoiceIn(BaseModel):
     save_customer: bool = True
     invoice_date: date
     due_date: date | None = None
+    payment_mode: PaymentMode = "bank"
+    payment_received: bool = False
 
     customer_name: str = Field(min_length=1, max_length=150)
     customer_ntn_cnic: str | None = Field(default=None, max_length=50)
@@ -249,6 +252,8 @@ class InvoiceOut(InvoiceSummary):
     tax_rate: Decimal
     tax_amount: Decimal
     notes: str | None
+    payment_mode: PaymentMode
+    payment_received: bool
     created_by_name: str | None
     created_at: datetime | None
     items: list[InvoiceItemOut]

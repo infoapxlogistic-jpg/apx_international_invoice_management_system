@@ -5,7 +5,7 @@ import { findCurrency, useCompanies } from '../companies'
 import Icon from '../components/Icon'
 import { Alert, CompanyLogo, Field, Spinner } from '../components/ui'
 import { invoiceTotals } from '../calc'
-import { addDays, money, today } from '../format'
+import { PAYMENT_MODES, addDays, money, today } from '../format'
 
 const emptyItem = () => ({ key: Math.random(), description: '', quantity: '1', unit_price: '', taxable: false })
 
@@ -31,6 +31,8 @@ function blankForm(company) {
     save_customer: true,
     invoice_date: d,
     due_date: company ? addDays(d, company.payment_terms_days ?? 10) : '',
+    payment_mode: 'bank',
+    payment_received: false,
     ...Object.fromEntries(CUSTOMER_FIELDS.map(([k]) => [k, ''])),
     items: [emptyItem()],
     discount: 0,
@@ -49,6 +51,8 @@ function fromInvoice(inv, { copy }) {
     save_customer: true,
     invoice_date: copy ? d : inv.invoice_date,
     due_date: copy ? addDays(d, inv.company?.payment_terms_days ?? 10) : inv.due_date || '',
+    payment_mode: inv.payment_mode || 'bank',
+    payment_received: copy ? false : !!inv.payment_received,
     ...Object.fromEntries(CUSTOMER_FIELDS.map(([k]) => [k, inv[k] || ''])),
     items: inv.items.map((i) => ({
       key: Math.random(),
@@ -360,6 +364,17 @@ export default function InvoiceForm() {
                 </button>
               ))}
             </div>
+            <Field label="Mode of payment" hint={form.payment_mode === 'bank' && !form.payment_received ? 'The invoice shows the company bank details' : 'Printed on the invoice under Payment details'}>
+              <select value={form.payment_mode} onChange={set('payment_mode')}>
+                {Object.entries(PAYMENT_MODES).map(([k, label]) => (
+                  <option key={k} value={k}>{label}</option>
+                ))}
+              </select>
+            </Field>
+            <label className="check">
+              <input type="checkbox" checked={form.payment_received} onChange={set('payment_received')} />
+              Payment already received
+            </label>
           </div>
         </section>
       </div>

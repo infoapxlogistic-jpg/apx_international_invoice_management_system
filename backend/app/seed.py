@@ -61,6 +61,8 @@ NEW_COLUMNS = {
     },
     "invoices": {
         "currency_code": "VARCHAR(3) NOT NULL DEFAULT 'GBP'",
+        "payment_mode": "VARCHAR(10) NOT NULL DEFAULT 'bank'",
+        "payment_received": "BOOLEAN NOT NULL DEFAULT 0",
         "customer_county": "VARCHAR(80) NULL",
         "taxable_total": "NUMERIC(14,2) NOT NULL DEFAULT 0",
         "non_taxable_total": "NUMERIC(14,2) NOT NULL DEFAULT 0",
