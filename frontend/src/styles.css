@@ -639,6 +639,12 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--primary)
 }
 
 /* ---------- Print: only the invoice ---------- */
+/* Phones and tablets print with the site address and date stamped on the page, so there
+   the invoice is saved with "Download PDF" only. */
+@media (hover: none) and (pointer: coarse) {
+  .print-btn { display: none; }
+}
+
 @media print {
   /* No page margin = no room for the browser's own header/footer (URL, date, page 1/1).
      The white space around the invoice is added inside the page instead. */

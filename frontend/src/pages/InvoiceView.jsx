@@ -248,7 +248,7 @@ export default function InvoiceView() {
           <button type="button" className="btn btn-primary" onClick={downloadPdf} disabled={making}>
             <Icon name="download" /> {making ? 'Making PDF…' : 'Download PDF'}
           </button>
-          <button type="button" className="btn" onClick={() => window.print()}>
+          <button type="button" className="btn print-btn" onClick={() => window.print()}>
             <Icon name="print" /> Print
           </button>
           <Link className="btn" to={`/invoices/${inv.id}/edit`}><Icon name="edit" /> Edit</Link>
